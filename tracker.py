@@ -58,6 +58,7 @@ def once():
     now = datetime.now(timezone.utc)
     rows, failures = [], 0
     with closing(monitor.database()) as db:
+        had_observations = bool(db.execute('SELECT 1 FROM tracker_snapshots LIMIT 1').fetchone())
         for card in cfg['cards']:
             name = card.get('tracker_name', card['name'])
             try:
@@ -89,10 +90,12 @@ def once():
                         db.commit()
             except (RuntimeError, ValueError, TypeError, KeyError) as error:
                 failures += 1
-                print(f"Datakilde fejlede for {card['id']} ({type(error).__name__})", file=sys.stderr)
+                detail = str(error) if isinstance(error, RuntimeError) else type(error).__name__
+                print(f"Datakilde fejlede for {card['id']}: {detail}", file=sys.stderr)
                 rows.append(f"**{name}**\nDatakilden kunne ikke læses; ingen ny pris.")
         last = db.execute("SELECT value FROM state WHERE key='last_report'").fetchone()
-        if not last or time.time()-float(last[0]) >= cfg['report_interval_hours']*3600:
+        first_prices = not had_observations and bool(db.execute('SELECT 1 FROM tracker_snapshots LIMIT 1').fetchone())
+        if not last or first_prices or time.time()-float(last[0]) >= cfg['report_interval_hours']*3600:
             monitor.send(f"PSA Pokémon · {now:%Y-%m-%d %H:%M} UTC · {cfg['holding_years']}+ år\n"
                          f"Månedsbudget: {cfg['monthly_budget_dkk']:.0f} kr. Køb registreres privat.\n"
                          f"Kilde: PokemonPriceTracker, sammenfattede graderede salg. Manuel kurs: 1 USD = {rate} DKK.\n"
@@ -100,8 +103,9 @@ def once():
                          "Fragt, import, moms og gebyrer er ikke indregnet. Historik starter ved første kørsel.")
             for row in rows:
                 monitor.send(row)
-            db.execute("INSERT OR REPLACE INTO state VALUES('last_report',?)", (str(time.time()),))
-            db.commit()
+            if not failures:
+                db.execute("INSERT OR REPLACE INTO state VALUES('last_report',?)", (str(time.time()),))
+                db.commit()
     if failures:
         raise RuntimeError(f'{failures} kort kunne ikke læses; se log')
 
