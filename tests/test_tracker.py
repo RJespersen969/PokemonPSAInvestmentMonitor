@@ -39,6 +39,11 @@ class TrackerTests(unittest.TestCase):
         self.assertEqual(result['median'], 200)
         self.assertEqual(result['count'], 8)
 
+    def test_price_range_includes_boundaries_and_excludes_outside(self):
+        for amount, expected in [(499, False), (500, True), (1300, True), (2500, True), (2501, False)]:
+            with self.subTest(amount=amount):
+                self.assertEqual(tracker.in_price_range(self.cfg, {'median': monitor.money(amount)}, monitor.money(1)), expected)
+
     def test_single_card_object_supported(self):
         response = {'data': self.response()['data'][0]}
         self.assertEqual(tracker.parse_grade(self.card, response)['median'], 200)

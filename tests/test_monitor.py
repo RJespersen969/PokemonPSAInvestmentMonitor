@@ -29,7 +29,7 @@ class MonitorTests(unittest.TestCase):
         for title in (self.card['query'].replace('PSA 10', 'PSA 9'),
                       self.card['query'].replace('PSA 10', 'PSA 100'),
                       self.card['query'] + ' Japanese',
-                      self.card['query'].replace('215/203', '214/203')):
+                      self.card['query'].replace(self.card['required_terms'][-1], '999/999')):
             self.assertFalse(monitor.match(self.card, {'title': title}))
 
     def test_currency_and_price_filter(self):
@@ -62,7 +62,7 @@ class MonitorTests(unittest.TestCase):
             monitor.cycle(self.db, self.cfg, monitor.Demo(), True)
         send.assert_not_called()
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM alerts').fetchone()[0], 0)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM snapshots').fetchone()[0], 2)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM snapshots').fetchone()[0], len(self.cfg['cards']))
 
     def test_budget_is_month_specific(self):
         self.db.executemany('INSERT INTO purchases(date,card_id,total_dkk,note) VALUES(?,?,?,?)',

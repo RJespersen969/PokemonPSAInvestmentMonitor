@@ -56,6 +56,11 @@ def kr(amount):
     return f"{amount:,.0f}".replace(',', '.') + ' kr.'
 
 
+def in_price_range(cfg, result, rate):
+    amount = result['median'] * rate
+    return monitor.money(cfg.get('min_price_dkk', 0)) <= amount <= monitor.money(cfg.get('max_price_dkk', 1000000000))
+
+
 def card_embed(card, result=None, rate=None, change=None, error=False):
     name = card.get('tracker_name', card['name']).split(' · ')[0]
     embed = {'title': name, 'description': f"💎 **PSA {card['grade']}** · 🇬🇧 Engelsk", 'color': 0x5865F2}
@@ -88,6 +93,11 @@ def report_embeds(cfg, rows, rate, now):
                     {'name': '🔄 Pristjek', 'value': 'Hver 6. time', 'inline': True}],
                 'footer': {'text': f'PokemonPriceTracker · manuel USD/DKK {rate} · ekskl. omkostninger · eksempler, ikke købsråd'},
                 'timestamp': now.isoformat()}
+    if 'min_price_dkk' in cfg:
+        overview['fields'].append({'name': '🎯 Prisinterval', 'value': kr(cfg['min_price_dkk']) + '–' + kr(cfg['max_price_dkk']), 'inline': True})
+        overview['description'] = f"**{len(rows)} PSA-kort i dit prisinterval** · {len(cfg['cards'])} kandidater tjekket"
+        if not rows:
+            overview['description'] += '\nIngen kandidater har en verificeret salgsmedian i intervallet lige nu.'
     return [overview] + rows
 
 
@@ -106,7 +116,8 @@ def once(force_report=False):
             try:
                 result = fetch(card)
                 if result is None:
-                    rows.append(card_embed(card))
+                    if 'min_price_dkk' not in cfg:
+                        rows.append(card_embed(card))
                     continue
                 previous = db.execute('SELECT median_usd FROM tracker_snapshots WHERE card_id=? ORDER BY time DESC LIMIT 1',
                                       (card['id'],)).fetchone()
@@ -116,6 +127,8 @@ def once(force_report=False):
                             result['count'], result['last_sale'], float(rate)))
                 db.commit()
                 print(f"PSA {card['grade']}-observation gemt for {card['id']}; ingen API-nøgler eller priser i loggen.")
+                if not in_price_range(cfg, result, rate):
+                    continue
                 rows.append(card_embed(card, result, rate, change))
                 threshold = card.get('alert_below_dkk')
                 if threshold is not None and result['median']*rate <= monitor.money(threshold):
@@ -132,7 +145,8 @@ def once(force_report=False):
                 failures += 1
                 detail = str(error) if isinstance(error, RuntimeError) else type(error).__name__
                 print(f"Datakilde fejlede for {card['id']}: {detail}", file=sys.stderr)
-                rows.append(card_embed(card, error=True))
+                if 'min_price_dkk' not in cfg:
+                    rows.append(card_embed(card, error=True))
         last = db.execute("SELECT value FROM state WHERE key='last_report'").fetchone()
         first_prices = not had_observations and bool(db.execute('SELECT 1 FROM tracker_snapshots LIMIT 1').fetchone())
         if force_report or not last or first_prices or time.time()-float(last[0]) >= cfg['report_interval_hours']*3600:

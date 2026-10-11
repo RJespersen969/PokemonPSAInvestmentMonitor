@@ -8,26 +8,90 @@
   "max_pages": 3,
   "cards": [
     {
-      "id": "umbreon-vmax-215-en-psa10",
-      "tcgplayer_id": 246723,
-      "name": "Umbreon VMAX 215/203 · engelsk · PSA 10 (eksempel)",
-      "query": "Umbreon VMAX 215/203 PSA 10 English",
-      "required_terms": ["umbreon", "vmax", "215"],
-      "excluded_terms": ["japanese", "japan", "german", "deutsch", "proxy", "replica", "custom", "lot", "bundle"],
+      "id": "pikachu-160-159-en-psa10",
+      "tcgplayer_id": 478103,
+      "name": "Pikachu 160/159 · engelsk · PSA 10",
+      "query": "Pikachu 160/159 PSA 10 English",
+      "required_terms": [
+        "pikachu",
+        "160/159"
+      ],
+      "excluded_terms": [
+        "japanese",
+        "german",
+        "proxy",
+        "replica",
+        "custom",
+        "lot",
+        "bundle"
+      ],
       "grade": 10,
       "alert_below_dkk": null
     },
     {
-      "id": "charizard-4-unlimited-en-psa9",
-      "tcgplayer_id": 42382,
-      "tracker_name": "Charizard Base Set 4/102 · engelsk · PSA 9 (eksempel)",
-      "tracker_variant_note": "Udbyderens variantopdeling er ikke verificeret; denne median kan ikke bruges som en specifik Unlimited-vurdering.",
-      "name": "Charizard Base Set 4/102 · Unlimited · engelsk · PSA 9 (eksempel)",
-      "query": "Charizard 4/102 Unlimited PSA 9 English",
-      "required_terms": ["charizard", "4/102", "unlimited"],
-      "excluded_terms": ["shadowless", "1st", "first edition", "japanese", "german", "deutsch", "proxy", "replica", "custom", "lot", "bundle"],
-      "grade": 9,
+      "id": "suicune-v-gg38-gg70-en-psa10",
+      "tcgplayer_id": 478067,
+      "name": "Suicune V GG38/GG70 · engelsk · PSA 10",
+      "query": "Suicune V GG38/GG70 PSA 10 English",
+      "required_terms": [
+        "suicune",
+        "gg38"
+      ],
+      "excluded_terms": [
+        "japanese",
+        "german",
+        "proxy",
+        "replica",
+        "custom",
+        "lot",
+        "bundle"
+      ],
+      "grade": 10,
+      "alert_below_dkk": null
+    },
+    {
+      "id": "raikou-v-gg41-gg70-en-psa10",
+      "tcgplayer_id": 478069,
+      "name": "Raikou V GG41/GG70 · engelsk · PSA 10",
+      "query": "Raikou V GG41/GG70 PSA 10 English",
+      "required_terms": [
+        "raikou",
+        "gg41"
+      ],
+      "excluded_terms": [
+        "japanese",
+        "german",
+        "proxy",
+        "replica",
+        "custom",
+        "lot",
+        "bundle"
+      ],
+      "grade": 10,
+      "alert_below_dkk": null
+    },
+    {
+      "id": "entei-v-gg36-gg70-en-psa10",
+      "tcgplayer_id": 478065,
+      "name": "Entei V GG36/GG70 · engelsk · PSA 10",
+      "query": "Entei V GG36/GG70 PSA 10 English",
+      "required_terms": [
+        "entei",
+        "gg36"
+      ],
+      "excluded_terms": [
+        "japanese",
+        "german",
+        "proxy",
+        "replica",
+        "custom",
+        "lot",
+        "bundle"
+      ],
+      "grade": 10,
       "alert_below_dkk": null
     }
-  ]
+  ],
+  "min_price_dkk": 500,
+  "max_price_dkk": 2500
 }

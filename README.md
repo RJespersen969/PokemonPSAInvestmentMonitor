@@ -40,14 +40,14 @@ og Actions-status; gratis drift er ikke en garanti for 24/7-oppetid eller fem ?r
 Redig?r `watchlist.json`. Kortene er tekniske eksempler, ikke k?bsanbefalinger.
 `tcgplayer_id` identificerer kortet hos udbyderen, og `grade` v?lger pr?cis PSA-grade.
 Andre graders priser og ugraderede kort bruges ikke som erstatning, hvis PSA-data mangler.
-Charizards variantopdeling er ikke verificeret; rapporten m?rker den begr?nsning.
+Listen tester Pikachu 160/159, Suicune V GG38, Raikou V GG41 og Entei V GG36 i engelsk PSA 10. Discord viser kun kort med salgsmedian mellem 500 og 2.500 DKK (inklusive), ekskl. fragt og afgifter. Kandidater uden PSA-data eller uden for intervallet udelades; historikken bevares.
 
 `alert_below_dkk: null` betyder ingen alarm. S?t en egen prisgr?nse for at f? en alarm,
 n?r udbyderens salgsmedian omregnet til DKK er under den. Alarmen er en statistikalarm,
 ikke en annonce, man kan k?be. Samme median og prisgr?nse gentages normalt ikke.
 
 Den gratis ops?tning tillader h?jst seks kort og mindst seks timer mellem pristjek.
-De to eksempel-kort bruger normalt 16 credits/d?gn med fire k?rsler; gratisplanen
+De fire kandidater bruger normalt 32 credits/d?gn med fire k?rsler; gratisplanen
 angiver 100 credits/d?gn. Ekstra k?rsler og genfors?g t?ller ogs?. Ingen betalt plan v?lges automatisk.
 
 ## Privat registrering af k?b
@@ -55,7 +55,7 @@ angiver 100 credits/d?gn. Ekstra k?rsler og genfors?g t?ller ogs?. Ingen betalt 
 K?b registreres lokalt, s? de ikke ligger i det offentlige repository:
 
 ```sh
-python monitor.py purchase --card umbreon-vmax-215-en-psa10 --amount 1200 --date 2026-10-11 --note "Pris inkl. omkostninger"
+python monitor.py purchase --card pikachu-160-159-en-psa10 --amount 1200 --date 2026-10-11 --note "Pris inkl. omkostninger"
 python monitor.py export
 ```
 
