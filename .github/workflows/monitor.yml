@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
+    inputs:
+      force_report:
+        description: Send rapport nu, også hvis dagens rapport allerede er sendt
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -39,7 +44,14 @@ jobs:
         run: python github_state.py restore
       - name: Check prices and send Discord messages
         id: prices
-        run: python tracker.py once
+        env:
+          FORCE_REPORT: ${{ inputs.force_report && '1' || '0' }}
+        run: |
+          if [ "$FORCE_REPORT" = '1' ]; then
+            python tracker.py once --force-report
+          else
+            python tracker.py once
+          fi
       - name: Preserve encrypted history, including partial results
         if: always() && steps.restore.outcome == 'success' && steps.prices.outcome != 'skipped'
         env:

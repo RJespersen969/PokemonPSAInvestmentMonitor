@@ -66,10 +66,10 @@ class TrackerTests(unittest.TestCase):
         with patch.object(tracker, 'check', return_value=monitor.money('6.50')), \
                 patch.object(monitor, 'config', return_value=self.cfg), \
                 patch.object(tracker, 'fetch', return_value=tracker.parse_grade(self.card, self.response())), \
-                patch.object(monitor, 'send') as send:
+                patch.object(monitor, 'send_embeds') as send:
             tracker.once()
             first = send.call_count
-            self.assertEqual(first, 3)
+            self.assertEqual(first, 2)
             tracker.once()
             self.assertEqual(send.call_count, first)
         with closing(sqlite3.connect(self.root/'psa.sqlite3')) as db:

@@ -200,6 +200,12 @@ def send(content):
                           "allowed_mentions": {"parse": []}}, ensure_ascii=False).encode())
 
 
+def send_embeds(embeds):
+    http_json(webhook_url(), "POST", {"Content-Type": "application/json"},
+              json.dumps({"username": "PSA Watch", "embeds": embeds,
+                          "allowed_mentions": {"parse": []}}, ensure_ascii=False).encode())
+
+
 def spent(db, month):
     return db.execute("SELECT COALESCE(SUM(total_dkk),0) FROM purchases WHERE substr(date,1,7)=?",
                       (month,)).fetchone()[0]

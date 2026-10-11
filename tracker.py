@@ -52,7 +52,46 @@ def fetch(card):
     return parse_grade(card, data)
 
 
-def once():
+def kr(amount):
+    return f"{amount:,.0f}".replace(',', '.') + ' kr.'
+
+
+def card_embed(card, result=None, rate=None, change=None, error=False):
+    name = card.get('tracker_name', card['name']).split(' · ')[0]
+    embed = {'title': name, 'description': f"💎 **PSA {card['grade']}** · 🇬🇧 Engelsk", 'color': 0x5865F2}
+    if result is None:
+        embed.update(color=0xF0B232, fields=[{'name': '⏳ Status', 'value': 'Priskilden kunne ikke læses.' if error else 'Ingen PSA-salgsmedian tilgængelig.'}])
+        return embed
+    trend = 'Første måling' if change is None else f"{'📈' if change > 0 else '📉' if change < 0 else '➖'} {change:+.1f}% siden sidst"
+    embed['color'] = 0x57F287 if change and change > 0 else 0xED4245 if change and change < 0 else 0x5865F2
+    date = str(result['last_sale'])[:10]
+    try:
+        date = datetime.strptime(date, '%Y-%m-%d').strftime('%d.%m.%Y')
+    except ValueError:
+        date = 'Ukendt'
+    embed['fields'] = [
+        {'name': '💰 Salgsmedian', 'value': f"**≈ {kr(result['median']*rate)}**\n${result['median']:,.2f}", 'inline': True},
+        {'name': '📊 Udvikling', 'value': trend, 'inline': True},
+        {'name': '🧾 Registrerede salg', 'value': f"{result['count']:,}".replace(',', '.'), 'inline': True},
+        {'name': '🕓 Seneste salg', 'value': date, 'inline': True}]
+    if card.get('tracker_variant_note'):
+        embed['fields'].append({'name': '⚠️ Variant', 'value': 'Unlimited er ikke særskilt verificeret.'})
+    embed['footer'] = {'text': 'Salgstal fra udbyderen · ikke kun dagens salg'}
+    return embed
+
+
+def report_embeds(cfg, rows, rate, now):
+    overview = {'title': '⚡ PSA WATCH', 'description': f"Dit Pokémon-overblik · **{len(rows)} kort**",
+                'color': 0xFEE75C, 'fields': [
+                    {'name': '💳 Månedsbudget', 'value': kr(cfg['monthly_budget_dkk']), 'inline': True},
+                    {'name': '🗓️ Horisont', 'value': f"{cfg['holding_years']}+ år", 'inline': True},
+                    {'name': '🔄 Pristjek', 'value': 'Hver 6. time', 'inline': True}],
+                'footer': {'text': f'PokemonPriceTracker · manuel USD/DKK {rate} · ekskl. omkostninger · eksempler, ikke købsråd'},
+                'timestamp': now.isoformat()}
+    return [overview] + rows
+
+
+def once(force_report=False):
     rate = check()
     cfg = monitor.config()
     # Two credits per card per run, four scheduled runs/day. Reserve half the free allowance.
@@ -67,45 +106,37 @@ def once():
             try:
                 result = fetch(card)
                 if result is None:
-                    rows.append(f"**{name}**\nIngen brugbar PSA {card['grade']}-salgsmedian tilgængelig.")
+                    rows.append(card_embed(card))
                     continue
                 previous = db.execute('SELECT median_usd FROM tracker_snapshots WHERE card_id=? ORDER BY time DESC LIMIT 1',
                                       (card['id'],)).fetchone()
-                change = f" · {100*(float(result['median'])/previous[0]-1):+.1f}% siden sidst" if previous else ''
+                change = 100*(float(result['median'])/previous[0]-1) if previous else None
                 db.execute('INSERT INTO tracker_snapshots VALUES(?,?,?,?,?,?,?)',
                            (now.isoformat(), card['id'], card['grade'], float(result['median']),
                             result['count'], result['last_sale'], float(rate)))
                 db.commit()
                 print(f"PSA {card['grade']}-observation gemt for {card['id']}; ingen API-nøgler eller priser i loggen.")
-                rows.append(f"**{name}**\nPSA {card['grade']}-salgsmedian: ${result['median']:.2f} "
-                            f"(~{result['median']*rate:.0f} kr.){change}\n"
-                            f"Udbyderen angiver {result['count']} registrerede salg; det er ikke nødvendigvis dagens eller tre dages salg.\n"
-                            f"Seneste salg angivet: {result['last_sale']}" +
-                            (f"\n{card['tracker_variant_note']}" if card.get('tracker_variant_note') else ''))
+                rows.append(card_embed(card, result, rate, change))
                 threshold = card.get('alert_below_dkk')
                 if threshold is not None and result['median']*rate <= monitor.money(threshold):
                     key = (card['id'], 'tracker-median:' + str(result['median']), str(threshold))
                     if not db.execute('SELECT 1 FROM alerts WHERE card_id=? AND item_id=? AND threshold=?', key).fetchone():
-                        monitor.send(f"Median-alarm: **{name}**\nUdbyderens PSA {card['grade']}-salgsmedian er "
-                                     f"~{result['median']*rate:.0f} kr., under din grænse på {threshold} kr.\n"
-                                     "Dette er salgsstatistik, ikke en annonce, du kan købe. Kontrollér variant og samlede omkostninger.")
+                        alarm = card_embed(card, result, rate, change)
+                        alarm.update(title='🔔 MEDIAN-ALARM · ' + alarm['title'], color=0xF0B232)
+                        alarm['description'] += f"\nUnder din grænse på **{kr(threshold)}**"
+                        alarm['footer'] = {'text': 'Salgsstatistik · ikke et aktivt købstilbud · ekskl. omkostninger'}
+                        monitor.send_embeds([alarm])
                         db.execute('INSERT INTO alerts VALUES(?,?,?,?)', (*key, now.isoformat()))
                         db.commit()
             except (RuntimeError, ValueError, TypeError, KeyError) as error:
                 failures += 1
                 detail = str(error) if isinstance(error, RuntimeError) else type(error).__name__
                 print(f"Datakilde fejlede for {card['id']}: {detail}", file=sys.stderr)
-                rows.append(f"**{name}**\nDatakilden kunne ikke læses; ingen ny pris.")
+                rows.append(card_embed(card, error=True))
         last = db.execute("SELECT value FROM state WHERE key='last_report'").fetchone()
         first_prices = not had_observations and bool(db.execute('SELECT 1 FROM tracker_snapshots LIMIT 1').fetchone())
-        if not last or first_prices or time.time()-float(last[0]) >= cfg['report_interval_hours']*3600:
-            monitor.send(f"PSA Pokémon · {now:%Y-%m-%d %H:%M} UTC · {cfg['holding_years']}+ år\n"
-                         f"Månedsbudget: {cfg['monthly_budget_dkk']:.0f} kr. Køb registreres privat.\n"
-                         f"Kilde: PokemonPriceTracker, sammenfattede graderede salg. Manuel kurs: 1 USD = {rate} DKK.\n"
-                         "Priser er ikke aktive købstilbud eller afkastprognoser. Eksempler er ikke købsanbefalinger. "
-                         "Fragt, import, moms og gebyrer er ikke indregnet. Historik starter ved første kørsel.")
-            for row in rows:
-                monitor.send(row)
+        if force_report or not last or first_prices or time.time()-float(last[0]) >= cfg['report_interval_hours']*3600:
+            monitor.send_embeds(report_embeds(cfg, rows, rate, now))
             if not failures:
                 db.execute("INSERT OR REPLACE INTO state VALUES('last_report',?)", (str(time.time()),))
                 db.commit()
@@ -121,7 +152,7 @@ if __name__ == '__main__':
             check()
             print('Tracker-konfiguration OK; API-adgang endnu ikke testet.')
         elif command == 'once':
-            once()
+            once(force_report='--force-report' in sys.argv[2:])
         elif command == 'run':
             check()
             while True:
