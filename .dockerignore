@@ -1,4 +1,6 @@
 *
 !monitor.py
+!tracker.py
+!requirements.txt
 !watchlist.json
 !Dockerfile

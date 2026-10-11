@@ -9,6 +9,7 @@
   "cards": [
     {
       "id": "umbreon-vmax-215-en-psa10",
+      "tcgplayer_id": 246723,
       "name": "Umbreon VMAX 215/203 · engelsk · PSA 10 (eksempel)",
       "query": "Umbreon VMAX 215/203 PSA 10 English",
       "required_terms": ["umbreon", "vmax", "215"],
@@ -18,6 +19,9 @@
     },
     {
       "id": "charizard-4-unlimited-en-psa9",
+      "tcgplayer_id": 42382,
+      "tracker_name": "Charizard Base Set 4/102 · engelsk · PSA 9 (eksempel)",
+      "tracker_variant_note": "Udbyderens variantopdeling er ikke verificeret; denne median kan ikke bruges som en specifik Unlimited-vurdering.",
       "name": "Charizard Base Set 4/102 · Unlimited · engelsk · PSA 9 (eksempel)",
       "query": "Charizard 4/102 Unlimited PSA 9 English",
       "required_terms": ["charizard", "4/102", "unlimited"],

@@ -1,88 +1,61 @@
-# Gratis overvågning med GitHub Actions
+# GitHub-ops?tning
 
 Repository: https://github.com/RJespersen969/PokemonPSAInvestmentMonitor
 
-Dette projekt kører selvstændigt. Det eksisterende `PokemonMonitor` ændres ikke.
-Det nye repository er offentligt. Standard GitHub-hostede Linux-runners i offentlige
-repositories er gratis ifølge GitHubs aktuelle prisregler.
+Standard GitHub-hostede Linux-runners i dette offentlige repository er gratis.
+PokemonPriceTrackers Free-plan angiver 100 credits/d?gn og kr?ver ingen eBay-godkendelse.
+Projektet v?lger ikke en betalt API-plan og bruger ikke betalte GitHub-runners eller artifacts.
 
-## Upload
+## Secrets
 
-1. Udpak `PokemonPSAInvestmentMonitor-upload.zip` i en ny mappe.
-2. Åbn det nye repository. Vælg **uploading an existing file**, eller **Add file → Upload files**.
-3. Upload de udpakkede filer og mapper, inklusive `.github`, `.gitignore` og `.dockerignore`.
-   `monitor.py`, `github_state.py`, `watchlist.json` og `Dockerfile` skal ligge i repositoryets rod.
-   Begge workflows skal ligge i `.github/workflows/`.
-4. Gem med **Commit changes** på `main`.
-5. Åbn **Actions → Validate PSA investment monitor**, og kontrollér at testen bliver grøn.
+Under **Settings ? Secrets and variables ? Actions** gemmes:
 
-Upload ikke selve zip-filen som erstatning for projektfilerne. Pakken indeholder ingen
-`.env`, API-nøgler, webhook, købsdata eller lokale logfiler.
+- `DISCORD_WEBHOOK_PSA`: den nye PSA-kanals webhook. `DISCORD_WEBHOOK_URL` underst?ttes ogs?.
+- `PSA_API_KEY`: PokemonPriceTracker-n?glen. `POKEMON_PRICE_TRACKER_API_KEY` underst?ttes ogs?.
+- `STATE_ENCRYPTION_KEY`: en Fernet-n?gle til historikken. Den er oprettet ved ops?tningen.
 
-## Gem tre secrets
+N?glen fra PokemonPriceTracker findes p? https://www.pokemonpricetracker.com/api-keys.
+V?lg Free-planen. Del ikke n?gler eller webhook-URL i kode eller chatten.
+Hvis begge alternative navne findes, har de lange navne forrang.
+Gem en aktuel `USD_DKK_RATE` som **Variable**; ellers bruges den manuelle standardv?rdi 6.50.
 
-Opret en **ny** Discord-webhook til dette projekt. I det nye repository vælger du:
-**Settings → Secrets and variables → Actions → New repository secret**.
-Gem:
+## Start og kontrol
 
-- `DISCORD_WEBHOOK_URL`
-- `EBAY_CLIENT_ID`
-- `EBAY_CLIENT_SECRET`
+1. **Actions ? Validate PSA investment monitor** skal v?re gr?n.
+2. **Actions ? PSA Pokemon monitoring ? Run workflow ? main** starter et pristjek.
+3. Kontroll?r at **Check prices and send Discord messages** og **Preserve encrypted history** bliver gr?nne.
+4. F?rste k?rsel sender rapporten til Discord. Senere rapporter sendes cirka hver 24. time.
+5. Tidsplanen laver fire pristjek/d?gn: 00:17, 06:17, 12:17 og 18:17 UTC.
 
-eBay skal give appen adgang til Browse API i produktion. Nøgler alene garanterer ikke adgang.
-Del ikke værdierne i chatten, og læg dem ikke i kode eller `watchlist.json`.
+**Test PSA Discord connection** tester webhooken uden API-n?glen.
+GitHub opretter automatisk `GITHUB_TOKEN`; du skal ikke gemme et personligt token til workflowen.
+`contents: write` bruges til at gemme state p? den separate branch, ikke til at ?ndre `main`.
 
-Under fanen **Variables** kan du oprette `EUR_DKK_RATE` med en aktuel EUR/DKK-kurs.
-Hvis den mangler, bruges standardværdien `7.46`. Kursen opdateres ikke automatisk.
-`GITHUB_TOKEN` kommer automatisk fra GitHub; du skal ikke oprette et personligt token.
+## Historik
 
-## Start
+Branchen `tracker-state` indeholder `private-market-state.fernet`, en krypteret,
+komprimeret SQLite-database. Selvom repositoryet er offentligt, kan prishistorikken
+ikke l?ses uden `STATE_ENCRYPTION_KEY`. Private k?b og noter udelades ogs? f?r kryptering.
+Tag backup af den krypterede fil sammen med en separat sikker backup af krypteringsn?glen.
+Slet eller udskift ikke n?glen uden en migrationsplan: eksisterende historik kan ellers ikke ?bnes.
 
-1. Kontrollér at **Actions → Validate PSA investment monitor** bliver grøn.
-2. Åbn **Actions → PSA Pokemon monitoring → Run workflow → main → Run workflow**.
-3. Kontrollér at kørslen bliver grøn, og at Discord modtager rapporten.
-4. Derefter kører den planlagt kl. **00:17, 06:17, 12:17 og 18:17 UTC** hver dag.
-   Danmark er UTC+1 om vinteren og UTC+2 om sommeren.
+En fejl ved restore stopper pristjekket for at undg? at nulstille historik.
+Almindelige delfejl gemmer stadig succesfulde observationer. Et totalt timeout/nedbrud
+kan miste seneste observation eller alarmkvittering. Samme alarm kan da blive gentaget.
+Krypteret state er begr?nset til 900 KB i denne version; flere kort eller mange ?rs historik
+kan kr?ve separat lagring. Samlede registrerede salg er udbyderens statistik, ikke n?dvendigvis
+salg i dag eller i de seneste tre dage. Der k?bes ingen kort automatisk.
 
-Ingen VPS, betalt hosting eller tændt pc er nødvendig. Workflowen laver ét pristjek
-pr. kørsel og afslutter. Den er ikke en konstant kørende Discord-bot.
+## Drift
 
-Workflowen får `contents: write` for at gemme markedsdata på en separat branch,
-`monitor-state`. Hvis GitHub afviser skrivning, se fejlteksten og repositoryets
-**Settings → Actions → General**. Organisationens regler eller branch-beskyttelse kan
-begrænse tokenet. Koden ændrer ikke `main` eller dit gamle repository.
+Bevar repositoryet offentligt for den valgte gratis GitHub-drift. Private repositories
+bruger kontoejerens delte gratis minutkvote og kan have betalt overforbrug.
+GitHub kan forsinke eller springe planlagte k?rsler over og kan deaktivere tidsplaner
+p? offentlige repositories efter 60 dage uden aktivitet. Hold ?je med Discord og Actions.
 
-## Historik og privatliv
+Priskilden er til personlig/hobbybrug. Et projekt med indt?gter, butik, reklamer eller
+kommerciel brug kr?ver en s?rskilt vurdering af udbyderens plan og licens.
 
-Prishistorik, alarm-id'er og tidspunktet for sidste daglige rapport gemmes komprimeret
-som `market-state.sqlite3.gz` i roden af branchen `monitor-state`.
-De hentes før hvert pristjek og gemmes bagefter, også efter almindelige delfejl.
-Kørsler serialiseres, så to jobs ikke overskriver hinandens historik.
-
-Denne branch er offentlig ligesom repositoryet. Den indeholder kun markedsobservationer,
-kort-id'er, alarmgrænser og afsendelsestidspunkter. Nøgler, køb og private noter kopieres ikke.
-Registrér køb privat på din pc med `monitor.py purchase` som beskrevet i README.
-Discord viser i denne driftsform budgettet på 3.000 kr./måned, men ikke et beregnet
-restbudget baseret på dine private køb.
-
-En fejl ved hentning af eksisterende state stopper kørslen frem for at starte ny historik.
-Ved et totalt timeout/nedbrud kan den seneste observation eller alarmkvittering gå tabt.
-Hent løbende en backup af state-filen, hvis du vil sikre historikken uafhængigt af GitHub.
-Slet ikke branchen `monitor-state`: det nulstiller historik og alarmhukommelse.
-Komprimeret state har en grænse på 900 KB; ved mange overvågede kort kan separat
-lagring blive nødvendig. Der er ingen garanti for fem års uændrede tjenestevilkår.
-
-## Gratis drift og begrænsninger
-
-Bevar repositoryet offentligt, og brug de medfølgende standard `ubuntu-latest` runners.
-Workflowene bruger ingen betalte tjenester, større runners, Actions-artifacts eller caches.
-Hvis repositoryet gøres privat, gælder kontoejerens delte gratis minutkvote i stedet;
-eventuelt overforbrug kan blive faktureret afhængigt af kontoen.
-
-GitHub kan forsinke eller springe planlagte kørsler over under belastning. I offentlige
-repositories kan planlagte workflows blive deaktiveret efter 60 dage uden repositoryaktivitet.
-Hold øje med daglige Discord-rapporter og GitHubs fejlmails, og kontrollér Actions,
-hvis rapporterne udebliver. Det er gratis automatisk overvågning, ikke en garanti for 24/7 oppetid.
-
-Kilder: [GitHub Actions-priser](https://docs.github.com/en/billing/concepts/product-billing/github-actions),
-[planlagte workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+Kilder: [API og gratisplan](https://www.pokemonpricetracker.com/api-reference),
+[licens](https://www.pokemonpricetracker.com/licensing),
+[GitHub-priser](https://docs.github.com/en/billing/concepts/product-billing/github-actions).

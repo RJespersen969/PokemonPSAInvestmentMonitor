@@ -79,6 +79,9 @@ def database(path=None):
       CREATE TABLE IF NOT EXISTS purchases (
         id INTEGER PRIMARY KEY, date TEXT, card_id TEXT, total_dkk REAL, note TEXT);
       CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT);
+      CREATE TABLE IF NOT EXISTS tracker_snapshots (
+        time TEXT, card_id TEXT, grade INTEGER, median_usd REAL, sales_count INTEGER,
+        last_sale TEXT, usd_dkk REAL, PRIMARY KEY(time, card_id));
     """)
     return db
 

@@ -20,6 +20,15 @@ MAX_COMPRESSED = 900_000
 MAX_DATABASE = 50_000_000
 
 
+def state_location():
+    return ('tracker-state', 'private-market-state.fernet') if os.environ.get('STATE_ENCRYPTION_KEY') else (BRANCH, FILENAME)
+
+
+def cipher():
+    from cryptography.fernet import Fernet
+    return Fernet(os.environ['STATE_ENCRYPTION_KEY'].encode())
+
+
 class GitHub:
     def __init__(self):
         if os.environ.get('GITHUB_REPOSITORY') != REPOSITORY:
@@ -48,11 +57,12 @@ class GitHub:
 
 
 def read_remote(client):
-    branch = client.api('/git/ref/heads/' + BRANCH, allow_missing=True)
+    branch_name, filename = state_location()
+    branch = client.api('/git/ref/heads/' + branch_name, allow_missing=True)
     if branch is None:
         return None
     # Missing data on an existing branch is an error, not permission to discard history.
-    return client.api('/contents/' + FILENAME + '?ref=' + BRANCH)
+    return client.api('/contents/' + filename + '?ref=' + branch_name)
 
 
 def validate_market_state(path):
@@ -60,7 +70,8 @@ def validate_market_state(path):
         if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
             raise RuntimeError('Invalid SQLite market history')
         tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if tables != {'snapshots', 'alerts', 'purchases', 'state'}:
+        if tables not in ({'snapshots', 'alerts', 'purchases', 'state'},
+                          {'snapshots', 'alerts', 'purchases', 'state', 'tracker_snapshots'}):
             raise RuntimeError('Unexpected tables in market history')
         if db.execute('SELECT COUNT(*) FROM purchases').fetchone()[0]:
             raise RuntimeError('Public market state must not contain purchases')
@@ -76,6 +87,8 @@ def restore(client):
     if remote.get('encoding') != 'base64' or remote.get('size', 0) > MAX_COMPRESSED:
         raise RuntimeError('Market history is too large or has an unsupported encoding')
     compressed = base64.b64decode(remote['content'])
+    if os.environ.get('STATE_ENCRYPTION_KEY'):
+        compressed = cipher().decrypt(compressed)
     import io
     with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as stream:
         raw = stream.read(MAX_DATABASE + 1)
@@ -99,6 +112,12 @@ def public_backup(source, destination):
                            original.execute('SELECT card_id,item_id,threshold,sent_at FROM alerts'))
         public.executemany('INSERT INTO state VALUES(?,?)',
                            original.execute("SELECT key,value FROM state WHERE key='last_report'"))
+        tables = {row[0] for row in original.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if 'tracker_snapshots' in tables:
+            if original.execute('SELECT COUNT(*) FROM tracker_snapshots').fetchone()[0] and not os.environ.get('STATE_ENCRYPTION_KEY'):
+                raise RuntimeError('Tracker history requires encrypted storage; no plaintext upload allowed')
+            public.executemany('INSERT INTO tracker_snapshots VALUES(?,?,?,?,?,?,?)',
+                               original.execute('SELECT time,card_id,grade,median_usd,sales_count,last_sale,usd_dkk FROM tracker_snapshots'))
         public.commit()
         public.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     validate_market_state(destination)
@@ -113,18 +132,21 @@ def save(client):
         clean = Path(folder) / 'market.sqlite3'
         public_backup(source, clean)
         compressed = gzip.compress(clean.read_bytes(), mtime=0)
+    if os.environ.get('STATE_ENCRYPTION_KEY'):
+        compressed = cipher().encrypt(compressed)
     if len(compressed) > MAX_COMPRESSED:
         raise RuntimeError('Compressed history exceeded 900 KB; export and plan separate storage before continuing')
     remote = read_remote(client)
+    branch_name, filename = state_location()
     if remote is None:
         main = client.api('/git/ref/heads/main')
-        client.api('/git/refs', 'POST', {'ref': 'refs/heads/' + BRANCH, 'sha': main['object']['sha']})
-    payload = {'message': 'Save public PSA market history', 'branch': BRANCH,
+        client.api('/git/refs', 'POST', {'ref': 'refs/heads/' + branch_name, 'sha': main['object']['sha']})
+    payload = {'message': 'Save PSA monitoring history', 'branch': branch_name,
                'content': base64.b64encode(compressed).decode()}
     if remote:
         payload['sha'] = remote['sha']
-    client.api('/contents/' + FILENAME, 'PUT', payload)
-    print('Public market history saved. Purchase data and notes were excluded.')
+    client.api('/contents/' + filename, 'PUT', payload)
+    print('Market history saved. Purchase data and notes were excluded.')
 
 
 if __name__ == '__main__':
