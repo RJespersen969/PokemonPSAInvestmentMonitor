@@ -23,8 +23,11 @@ def check():
 
 def parse_grade(card, response):
     rows = response.get('data')
+    if isinstance(rows, dict) and 'tcgPlayerId' in rows:
+        rows = [rows]
     if not isinstance(rows, list):
-        raise RuntimeError('Ukendt API-format; ingen pris blev antaget')
+        fields = ','.join(sorted(rows)[:30]) if isinstance(rows, dict) else type(rows).__name__
+        raise RuntimeError('Ukendt API-format; data-felter: ' + fields + '; topniveau: ' + ','.join(sorted(response)[:30]))
     found = [row for row in rows if str(row.get('tcgPlayerId')) == str(card['tcgplayer_id'])]
     if len(found) != 1:
         raise RuntimeError('Kortet blev ikke entydigt identificeret')

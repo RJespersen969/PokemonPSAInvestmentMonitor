@@ -39,6 +39,10 @@ class TrackerTests(unittest.TestCase):
         self.assertEqual(result['median'], 200)
         self.assertEqual(result['count'], 8)
 
+    def test_single_card_object_supported(self):
+        response = {'data': self.response()['data'][0]}
+        self.assertEqual(tracker.parse_grade(self.card, response)['median'], 200)
+
     def test_ungraded_and_other_grader_not_used(self):
         response = self.response()
         response['data'][0]['ebay']['salesByGrade'].pop('psa10')
