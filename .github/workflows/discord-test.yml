@@ -1,0 +1,22 @@
+name: Test PSA Discord connection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-discord:
+    if: github.repository == 'RJespersen969/PokemonPSAInvestmentMonitor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Send connection test to PSA channel
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL || secrets.DISCORD_WEBHOOK_PSA }}
+        run: python monitor.py test-discord
