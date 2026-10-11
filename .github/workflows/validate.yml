@@ -1,0 +1,29 @@
+name: Validate PSA investment monitor
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    # Denne workflow er kun beregnet til det nye, separate repository.
+    if: github.repository == 'RJespersen969/PokemonPSAInvestmentMonitor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Tests
+        run: python -m unittest discover -s tests -v
+      - name: Offline demo
+        run: python monitor.py demo
+      - name: Validate Docker build
+        run: docker build -t psa-investment-monitor:test .

@@ -1,0 +1,50 @@
+name: PSA Pokemon monitoring
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: psa-investment-monitor-state
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    if: github.repository == 'RJespersen969/PokemonPSAInvestmentMonitor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUBLIC_MARKET_MODE: '1'
+      EUR_DKK_RATE: ${{ vars.EUR_DKK_RATE || '7.46' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Check configuration
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+        run: python monitor.py check
+      - name: Restore public history
+        id: restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python github_state.py restore
+      - name: Check prices and send Discord messages
+        id: prices
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+        run: python monitor.py once
+      - name: Preserve public history, including partial results
+        if: always() && steps.restore.outcome == 'success' && steps.prices.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python github_state.py save

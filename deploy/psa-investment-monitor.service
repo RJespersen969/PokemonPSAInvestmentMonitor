@@ -1,0 +1,20 @@
+[Unit]
+Description=PSA Pokemon price monitor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=psa-investment-monitor
+WorkingDirectory=/opt/psa-investment-monitor
+ExecStart=/usr/bin/python3 /opt/psa-investment-monitor/monitor.py run
+Restart=always
+RestartSec=60
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/psa-investment-monitor/data
+
+[Install]
+WantedBy=multi-user.target

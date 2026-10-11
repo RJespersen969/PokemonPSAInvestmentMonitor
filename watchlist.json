@@ -1,0 +1,29 @@
+{
+  "monthly_budget_dkk": 3000,
+  "holding_years": 5,
+  "interval_seconds": 21600,
+  "report_interval_hours": 24,
+  "marketplace": "EBAY_DE",
+  "currency": "EUR",
+  "max_pages": 3,
+  "cards": [
+    {
+      "id": "umbreon-vmax-215-en-psa10",
+      "name": "Umbreon VMAX 215/203 · engelsk · PSA 10 (eksempel)",
+      "query": "Umbreon VMAX 215/203 PSA 10 English",
+      "required_terms": ["umbreon", "vmax", "215"],
+      "excluded_terms": ["japanese", "japan", "german", "deutsch", "proxy", "replica", "custom", "lot", "bundle"],
+      "grade": 10,
+      "alert_below_dkk": null
+    },
+    {
+      "id": "charizard-4-unlimited-en-psa9",
+      "name": "Charizard Base Set 4/102 · Unlimited · engelsk · PSA 9 (eksempel)",
+      "query": "Charizard 4/102 Unlimited PSA 9 English",
+      "required_terms": ["charizard", "4/102", "unlimited"],
+      "excluded_terms": ["shadowless", "1st", "first edition", "japanese", "german", "deutsch", "proxy", "replica", "custom", "lot", "bundle"],
+      "grade": 9,
+      "alert_below_dkk": null
+    }
+  ]
+}

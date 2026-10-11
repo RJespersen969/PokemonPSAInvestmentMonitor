@@ -1,0 +1,16 @@
+name: pokemon-psa-investment-monitor
+
+services:
+  psa-monitor:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - psa-data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+volumes:
+  psa-data:
